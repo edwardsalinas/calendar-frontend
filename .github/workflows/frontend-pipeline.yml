@@ -10,7 +10,7 @@ on:
 env:
   DOCKER_REGISTRY: docker.io
   DOCKER_USERNAME: edwardsalinas
-  IMAGE_NAME: calendar-frontend
+  IMAGE_NAME: calendar-frontend-v2
 
 jobs:
   # Job para testing y linting
