@@ -1,36 +1,36 @@
-# Dockerfile
 # Etapa de construcción
 FROM node:18-alpine AS builder
 
 # Configurar directorio de trabajo
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package*.json ./
+# Copiar archivos necesarios
+COPY package.json yarn.lock ./
 
-# Instalar dependencias
-RUN npm ci --only=production
+# Instalar Yarn globalmente e instalar dependencias
+RUN npm install -g yarn && \
+    yarn install --frozen-lockfile --production
 
 # Copiar código fuente
 COPY . .
 
-# Argument para el entorno
+# Argumento para el entorno
 ARG REACT_APP_ENV=dev
 
-# Variables de entorno específicas por ambiente
-ENV REACT_APP_ENV=$REACT_APP_ENV
+# Establecer variables de entorno basadas en el argumento
+ENV REACT_APP_ENV=${REACT_APP_ENV}
 
-# Configurar variables de entorno según el ambiente
+# Configurar URL de API según el entorno
 RUN if [ "$REACT_APP_ENV" = "prod" ]; then \
-      export REACT_APP_API_URL=https://api.calendar-prod.com; \
+      echo "REACT_APP_API_URL=https://api.calendar-prod.com " >> .env; \
     elif [ "$REACT_APP_ENV" = "qa" ]; then \
-      export REACT_APP_API_URL=https://api.calendar-qa.com; \
+      echo "REACT_APP_API_URL=https://api.calendar-qa.com " >> .env; \
     else \
-      export REACT_APP_API_URL=https://api.calendar-dev.com; \
+      echo "REACT_APP_API_URL=https://api.calendar-dev.com " >> .env; \
     fi
 
 # Construir la aplicación
-RUN npm run build
+RUN yarn build
 
 # Etapa de producción
 FROM nginx:alpine
@@ -38,8 +38,9 @@ FROM nginx:alpine
 # Copiar configuración de nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copiar archivos construidos
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Eliminar contenido por defecto y copiar los archivos construidos
+RUN rm -rf /usr/share/nginx/html/*
+COPY --from=builder /app/build /usr/share/nginx/html
 
 # Exponer puerto
 EXPOSE 80
